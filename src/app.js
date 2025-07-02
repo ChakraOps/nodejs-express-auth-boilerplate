@@ -19,7 +19,6 @@ app.use(morgan('dev'));
 //app.use(xss());
 app.use(express.urlencoded({ extended: true }));
 
-
 app.use('/api/v1', routes);
 
 app.use(errorHandler);

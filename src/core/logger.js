@@ -16,11 +16,7 @@ const logger = createLogger({
   ),
   transports: [
     new transports.Console({
-      format: format.combine(
-        format.colorize(),
-        format.simple(),
-        logFormat
-      )
+      format: format.combine(format.colorize(), format.simple(), logFormat)
     }),
 
     new transports.DailyRotateFile({
