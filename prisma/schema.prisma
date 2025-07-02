@@ -1,0 +1,209 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String    @id @default(cuid())
+  firstName        String
+  lastName         String
+  email            String    @unique
+  passwordHash     String
+  isEmailVerified  Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  teams            TeamMember[]
+  sessions         Session[]
+  verificationTokens VerificationToken[]
+  auditLogs        AuditLog[]
+  devices          Device[]
+  oauthAccounts    OAuthAccount[]
+  roles            UserRole[]
+  permissions      UserPermission[]
+
+  @@map("users")
+}
+
+model Team {
+  id               String    @id @default(cuid())
+  name             String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  members          TeamMember[]
+  invites          Invite[]
+  auditLogs        AuditLog[]
+  userRoles        UserRole[]
+  userPermissions  UserPermission[]
+
+  @@unique([name])
+  @@map("teams")
+}
+
+model TeamMember {
+  id               String    @id @default(cuid())
+  teamId           String
+  userId           String
+
+  team             Team      @relation(fields: [teamId], references: [id])
+  user             User      @relation(fields: [userId], references: [id])
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+model Session {
+  id               String    @id @default(cuid())
+  userId           String
+  token            String    @unique
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+
+  user             User      @relation(fields: [userId], references: [id])
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  id               String    @id @default(cuid())
+  userId           String
+  token            String    @unique
+  type             String
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+
+  user             User      @relation(fields: [userId], references: [id])
+
+  @@map("verification_tokens")
+}
+
+model Invite {
+  id               String    @id @default(cuid())
+  email            String
+  teamId           String
+  roleId           String
+  token            String    @unique
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+
+  team             Team      @relation(fields: [teamId], references: [id])
+  role             Role      @relation(fields: [roleId], references: [id])
+
+  @@map("invites")
+}
+
+model AuditLog {
+  id               String    @id @default(cuid())
+  userId           String?
+  teamId           String?
+  action           String
+  ipAddress        String?
+  userAgent        String?
+  createdAt        DateTime  @default(now())
+
+  user             User?     @relation(fields: [userId], references: [id])
+  team             Team?     @relation(fields: [teamId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Device {
+  id               String    @id @default(cuid())
+  userId           String
+  name             String
+  ipAddress        String?
+  lastUsedAt       DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+
+  user             User      @relation(fields: [userId], references: [id])
+
+  @@map("devices")
+}
+
+model OAuthAccount {
+  id               String    @id @default(cuid())
+  userId           String
+  provider         String
+  providerAccountId String
+  accessToken      String?
+  refreshToken     String?
+  expiresAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user             User      @relation(fields: [userId], references: [id])
+
+  @@unique([provider, providerAccountId])
+  @@map("oauth_accounts")
+}
+
+model Role {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  description   String?
+  isSystem      Boolean        @default(false)
+
+  permissions   RolePermission[]
+  users         UserRole[]
+  invites       Invite[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  description   String?
+
+  roles         RolePermission[]
+  users         UserPermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  id            String   @id @default(cuid())
+  roleId        String
+  permissionId  String
+
+  role          Role     @relation(fields: [roleId], references: [id])
+  permission    Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id            String   @id @default(cuid())
+  userId        String
+  roleId        String
+  teamId        String?
+
+  user          User     @relation(fields: [userId], references: [id])
+  role          Role     @relation(fields: [roleId], references: [id])
+  team          Team?    @relation(fields: [teamId], references: [id])
+
+  @@unique([userId, roleId, teamId])
+  @@map("user_roles")
+}
+
+model UserPermission {
+  id            String   @id @default(cuid())
+  userId        String
+  permissionId  String
+  teamId        String?
+
+  user          User     @relation(fields: [userId], references: [id])
+  permission    Permission @relation(fields: [permissionId], references: [id])
+  team          Team?    @relation(fields: [teamId], references: [id])
+
+  @@unique([userId, permissionId, teamId])
+  @@map("user_permissions")
+}
