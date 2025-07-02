@@ -93,7 +93,9 @@ const refresh = async (refreshToken) => {
   const payload = verifyRefreshToken(refreshToken);
 
   const session = await prisma.session.findUnique({ where: { token: refreshToken } });
-  if (!session || session.expiresAt < new Date()) throw new Error('Session expired or invalid');
+  if (!session || session.expiresAt < new Date() || session.revoked) {
+    throw new Error('Session expired, Please login again');
+  }
 
   const user = await prisma.user.findUnique({
     where: { id: payload.sub },
@@ -119,14 +121,25 @@ const refresh = async (refreshToken) => {
   return { accessToken: newAccessToken, refreshToken: newRefreshToken, roles: userRoles };
 };
 
+
 const logout = async (refreshToken, req) => {
   if (!refreshToken) throw new Error('Refresh token missing');
 
   const payload = verifyRefreshToken(refreshToken);
 
-  await prisma.session.deleteMany({ where: { token: refreshToken } });
+  const session = await prisma.session.findUnique({ where: { token: refreshToken } });
+  if (!session) throw new Error('Session not found');
 
-  log.info(`User logged out and session cleared: ${payload.sub}`);
+  await prisma.session.update({
+    where: { token: refreshToken },
+    data: {
+      revoked: true,
+      expiresAt: new Date(),
+      token: `revoked:${session.id}:${Date.now()}`
+    }
+  });
+
+  log.info(`User logged out, session revoked and token cleared: ${payload.sub}`);
 
   await createAuditLog({
     userId: payload.sub,
@@ -137,5 +150,39 @@ const logout = async (refreshToken, req) => {
   return { success: true, message: 'Logged out successfully' };
 };
 
+const logoutAll = async (refreshToken, req) => {
+  if (!refreshToken) throw new Error('Refresh token missing');
 
-module.exports = { register, login, refresh, logout };
+  const payload = verifyRefreshToken(refreshToken);
+
+  const userId = payload.sub;
+
+  const sessions = await prisma.session.findMany({ where: { userId, revoked: false } });
+
+  for (const session of sessions) {
+    await prisma.session.update({
+      where: { token: session.token },
+      data: {
+        revoked: true,
+        expiresAt: new Date(),
+        token: `revoked:${session.id}:${Date.now()}`
+      }
+    });
+  }
+
+  log.info(`All sessions revoked for user: ${userId}`);
+
+  await createAuditLog({
+    userId,
+    action: 'User logged out from all devices',
+    req
+  });
+
+  return { success: true, message: 'Logged out from all devices successfully' };
+};
+
+
+
+
+
+module.exports = { register, login, refresh, logout, logoutAll };

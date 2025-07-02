@@ -40,4 +40,14 @@ const logout = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, refresh, logout };
+const logoutAll = async (req, res, next) => {
+  try {
+    const { refreshToken } = req.body;
+    const result = await authService.logoutAll(refreshToken, req);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { register, login, refresh, logout, logoutAll };
