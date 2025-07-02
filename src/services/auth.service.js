@@ -3,8 +3,10 @@ const bcrypt = require('bcrypt');
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../core/jwt');
 const ms = require('ms');
 const env = require('../config/env');
+const log = require('../core/logger');
+const { createAuditLog } = require('../core/audit');
 
-const register = async ({ firstName, lastName, email, password, inviteId = null }) => {
+const register = async ({ firstName, lastName, email, password, req, inviteId = null }) => {
   const normalizedEmail = email.toLowerCase();
 
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -16,7 +18,6 @@ const register = async ({ firstName, lastName, email, password, inviteId = null 
     data: { firstName, lastName, email: normalizedEmail, passwordHash }
   });
 
-  // Determine role
   let roleName = 'subscriber_admin';
 
   if (inviteId) {
@@ -24,7 +25,6 @@ const register = async ({ firstName, lastName, email, password, inviteId = null 
     if (!invite) throw new Error('Invalid or expired invite');
     roleName = 'subscriber_member';
 
-    // Optionally mark invite as accepted
     await prisma.invite.update({
       where: { id: inviteId },
       data: { acceptedBy: user.id, acceptedAt: new Date() }
@@ -41,10 +41,17 @@ const register = async ({ firstName, lastName, email, password, inviteId = null 
     });
   }
 
+  log.info(`New user registered: ${user.id} as ${roleName}`);
+   await createAuditLog({
+    userId: user.id,
+    action: `User registered as ${roleName}`,
+    req
+  });
+
   return { success: true, message: 'Registration successful', userId: user.id };
 };
 
-const login = async ({ email, password }) => {
+const login = async ({ email, password, req }) => {
   const normalizedEmail = email.toLowerCase();
 
   const user = await prisma.user.findUnique({
@@ -68,6 +75,14 @@ const login = async ({ email, password }) => {
       expiresAt: new Date(Date.now() + ms(env.jwt.refreshExpiresIn))
     }
   });
+
+  log.info(`User logged in: ${user.id}`);
+  await createAuditLog({
+  userId: user.id,
+  action: 'User logged in',
+  req
+});
+
 
   return { accessToken, refreshToken, roles: userRoles };
 };
@@ -99,15 +114,28 @@ const refresh = async (refreshToken) => {
     }
   });
 
+  log.info(`Refresh token rotated for user: ${user.id}`);
+
   return { accessToken: newAccessToken, refreshToken: newRefreshToken, roles: userRoles };
 };
 
-const logout = async (refreshToken) => {
+const logout = async (refreshToken, req) => {
   if (!refreshToken) throw new Error('Refresh token missing');
+
+  const payload = verifyRefreshToken(refreshToken);
 
   await prisma.session.deleteMany({ where: { token: refreshToken } });
 
+  log.info(`User logged out and session cleared: ${payload.sub}`);
+
+  await createAuditLog({
+    userId: payload.sub,
+    action: 'User logged out',
+    req
+  });
+
   return { success: true, message: 'Logged out successfully' };
 };
+
 
 module.exports = { register, login, refresh, logout };
