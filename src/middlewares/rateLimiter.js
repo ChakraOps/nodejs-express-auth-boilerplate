@@ -10,7 +10,9 @@ const loginLimiter = rateLimit({
   legacyHeaders: false,
   handler: (req, res) => {
     log.warn(`Login rate limit exceeded for IP: ${req.ip}`);
-    res.status(429).json({ success: false, message: 'Too many login attempts, please try again later.' });
+    res
+      .status(429)
+      .json({ success: false, message: 'Too many login attempts, please try again later.' });
   }
 });
 
@@ -22,7 +24,9 @@ const registerLimiter = rateLimit({
   legacyHeaders: false,
   handler: (req, res) => {
     log.warn(`Register rate limit exceeded for IP: ${req.ip}`);
-    res.status(429).json({ success: false, message: 'Too many registration attempts, please try again later.' });
+    res
+      .status(429)
+      .json({ success: false, message: 'Too many registration attempts, please try again later.' });
   }
 });
 

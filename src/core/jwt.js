@@ -8,11 +8,9 @@ const signAccessToken = ({ userId, roles = [] }) => {
     throw new Error('Access token secret missing');
   }
 
-  const token = jwt.sign(
-    { sub: userId, roles },
-    env.jwt.accessSecret,
-    { expiresIn: env.jwt.accessExpiresIn }
-  );
+  const token = jwt.sign({ sub: userId, roles }, env.jwt.accessSecret, {
+    expiresIn: env.jwt.accessExpiresIn
+  });
 
   log.info(`Access token signed for user: ${userId}`);
   return token;
@@ -24,11 +22,9 @@ const signRefreshToken = ({ userId }) => {
     throw new Error('Refresh token secret missing');
   }
 
-  const token = jwt.sign(
-    { sub: userId },
-    env.jwt.refreshSecret,
-    { expiresIn: env.jwt.refreshExpiresIn }
-  );
+  const token = jwt.sign({ sub: userId }, env.jwt.refreshSecret, {
+    expiresIn: env.jwt.refreshExpiresIn
+  });
 
   log.info(`Refresh token signed for user: ${userId}`);
   return token;

@@ -50,8 +50,12 @@ const prisma = new PrismaClient();
 
     const allPermissions = await prisma.permission.findMany();
     const superadmin = await prisma.role.findUnique({ where: { name: 'superadmin' } });
-    const systemSupportLead = await prisma.role.findUnique({ where: { name: 'system_support_lead' } });
-    const systemSupportEngineer = await prisma.role.findUnique({ where: { name: 'system_support_engineer' } });
+    const systemSupportLead = await prisma.role.findUnique({
+      where: { name: 'system_support_lead' }
+    });
+    const systemSupportEngineer = await prisma.role.findUnique({
+      where: { name: 'system_support_engineer' }
+    });
     const subscriberAdmin = await prisma.role.findUnique({ where: { name: 'subscriber_admin' } });
     const subscriberMember = await prisma.role.findUnique({ where: { name: 'subscriber_member' } });
 
@@ -80,12 +84,20 @@ const prisma = new PrismaClient();
       });
     }
 
-    const adminPerms = allPermissions.filter(p =>
+    const adminPerms = allPermissions.filter((p) =>
       [
-        'team:read', 'team:update', 'member:invite', 'member:remove',
-        'member:view', 'role:assign', 'role:manage', 'audit:view',
-        'dashboard:access', 'dashboard:admin_tools',
-        'settings:manage_integrations', 'settings:configure_security'
+        'team:read',
+        'team:update',
+        'member:invite',
+        'member:remove',
+        'member:view',
+        'role:assign',
+        'role:manage',
+        'audit:view',
+        'dashboard:access',
+        'dashboard:admin_tools',
+        'settings:manage_integrations',
+        'settings:configure_security'
       ].includes(p.name)
     );
 
@@ -97,7 +109,9 @@ const prisma = new PrismaClient();
       });
     }
 
-    const memberPerms = allPermissions.filter(p => p.name === 'dashboard:access' || p.name === 'member:view');
+    const memberPerms = allPermissions.filter(
+      (p) => p.name === 'dashboard:access' || p.name === 'member:view'
+    );
     for (const perm of memberPerms) {
       await prisma.rolePermission.upsert({
         where: { roleId_permissionId: { roleId: subscriberMember.id, permissionId: perm.id } },

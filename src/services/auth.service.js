@@ -42,7 +42,7 @@ const register = async ({ firstName, lastName, email, password, req, inviteId = 
   }
 
   log.info(`New user registered: ${user.id} as ${roleName}`);
-   await createAuditLog({
+  await createAuditLog({
     userId: user.id,
     action: `User registered as ${roleName}`,
     req
@@ -63,7 +63,7 @@ const login = async ({ email, password, req }) => {
   const isMatch = await bcrypt.compare(password, user.passwordHash);
   if (!isMatch) throw new Error('Invalid credentials');
 
-  const userRoles = user.roles.map(r => r.role.name);
+  const userRoles = user.roles.map((r) => r.role.name);
 
   const accessToken = signAccessToken({ userId: user.id, roles: userRoles });
   const refreshToken = signRefreshToken({ userId: user.id });
@@ -78,11 +78,10 @@ const login = async ({ email, password, req }) => {
 
   log.info(`User logged in: ${user.id}`);
   await createAuditLog({
-  userId: user.id,
-  action: 'User logged in',
-  req
-});
-
+    userId: user.id,
+    action: 'User logged in',
+    req
+  });
 
   return { accessToken, refreshToken, roles: userRoles };
 };
@@ -103,7 +102,7 @@ const refresh = async (refreshToken) => {
   });
   if (!user) throw new Error('User not found');
 
-  const userRoles = user.roles.map(r => r.role.name);
+  const userRoles = user.roles.map((r) => r.role.name);
 
   const newAccessToken = signAccessToken({ userId: user.id, roles: userRoles });
   const newRefreshToken = signRefreshToken({ userId: user.id });
@@ -120,7 +119,6 @@ const refresh = async (refreshToken) => {
 
   return { accessToken: newAccessToken, refreshToken: newRefreshToken, roles: userRoles };
 };
-
 
 const logout = async (refreshToken, req) => {
   if (!refreshToken) throw new Error('Refresh token missing');
@@ -180,9 +178,5 @@ const logoutAll = async (refreshToken, req) => {
 
   return { success: true, message: 'Logged out from all devices successfully' };
 };
-
-
-
-
 
 module.exports = { register, login, refresh, logout, logoutAll };
