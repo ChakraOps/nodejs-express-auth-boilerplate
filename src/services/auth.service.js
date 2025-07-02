@@ -6,7 +6,7 @@ const env = require('../config/env');
 const log = require('../core/logger');
 const { createAuditLog } = require('../core/audit');
 
-const register = async ({ firstName, lastName, email, password, req, inviteId = null }) => {
+const register = async ({ firstName, lastName, email, password, inviteId = null, deviceName, ipAddress, userAgent }) => {
   const normalizedEmail = email.toLowerCase();
 
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -41,17 +41,26 @@ const register = async ({ firstName, lastName, email, password, req, inviteId = 
     });
   }
 
+  const device = await prisma.device.upsert({
+    where: { userId_name: { userId: user.id, name: deviceName } },
+    update: { ipAddress, lastUsedAt: new Date() },
+    create: { userId: user.id, name: deviceName, ipAddress }
+  });
+
   log.info(`New user registered: ${user.id} as ${roleName}`);
+
   await createAuditLog({
     userId: user.id,
+    deviceId: device.id,
     action: `User registered as ${roleName}`,
-    req
+    ipAddress,
+    userAgent
   });
 
   return { success: true, message: 'Registration successful', userId: user.id };
 };
 
-const login = async ({ email, password, req }) => {
+const login = async ({ email, password, deviceName, ipAddress, userAgent }) => {
   const normalizedEmail = email.toLowerCase();
 
   const user = await prisma.user.findUnique({
@@ -65,22 +74,32 @@ const login = async ({ email, password, req }) => {
 
   const userRoles = user.roles.map((r) => r.role.name);
 
+  const device = await prisma.device.upsert({
+    where: { userId_name: { userId: user.id, name: deviceName } },
+    update: { ipAddress, lastUsedAt: new Date() },
+    create: { userId: user.id, name: deviceName, ipAddress }
+  });
+
   const accessToken = signAccessToken({ userId: user.id, roles: userRoles });
   const refreshToken = signRefreshToken({ userId: user.id });
 
   await prisma.session.create({
     data: {
       userId: user.id,
+      deviceId: device.id,
       token: refreshToken,
       expiresAt: new Date(Date.now() + ms(env.jwt.refreshExpiresIn))
     }
   });
 
-  log.info(`User logged in: ${user.id}`);
+  log.info(`User logged in: ${user.id} from device ${deviceName}`);
+
   await createAuditLog({
     userId: user.id,
+    deviceId: device.id,
     action: 'User logged in',
-    req
+    ipAddress,
+    userAgent
   });
 
   return { accessToken, refreshToken, roles: userRoles };
@@ -120,7 +139,7 @@ const refresh = async (refreshToken) => {
   return { accessToken: newAccessToken, refreshToken: newRefreshToken, roles: userRoles };
 };
 
-const logout = async (refreshToken, req) => {
+const logout = async (refreshToken, ipAddress, userAgent) => {
   if (!refreshToken) throw new Error('Refresh token missing');
 
   const payload = verifyRefreshToken(refreshToken);
@@ -137,22 +156,24 @@ const logout = async (refreshToken, req) => {
     }
   });
 
-  log.info(`User logged out, session revoked and token cleared: ${payload.sub}`);
+  log.info(`User logged out, session revoked: ${payload.sub}`);
 
   await createAuditLog({
     userId: payload.sub,
+    sessionId: session.id,
+    deviceId: session.deviceId,
     action: 'User logged out',
-    req
+    ipAddress,
+    userAgent
   });
 
   return { success: true, message: 'Logged out successfully' };
 };
 
-const logoutAll = async (refreshToken, req) => {
+const logoutAll = async (refreshToken, ipAddress, userAgent) => {
   if (!refreshToken) throw new Error('Refresh token missing');
 
   const payload = verifyRefreshToken(refreshToken);
-
   const userId = payload.sub;
 
   const sessions = await prisma.session.findMany({ where: { userId, revoked: false } });
@@ -173,7 +194,8 @@ const logoutAll = async (refreshToken, req) => {
   await createAuditLog({
     userId,
     action: 'User logged out from all devices',
-    req
+    ipAddress,
+    userAgent
   });
 
   return { success: true, message: 'Logged out from all devices successfully' };
