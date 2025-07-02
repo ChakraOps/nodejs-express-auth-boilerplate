@@ -1,4 +1,5 @@
 const prisma = require('../core/db');
+const log = require('../core/logger');
 
 const getHealthStatus = async () => {
   let databaseStatus = false;
@@ -8,6 +9,7 @@ const getHealthStatus = async () => {
     databaseStatus = true;
   } catch (err) {
     databaseStatus = false;
+    log.error('Database health check failed:', err);
   }
 
   return {

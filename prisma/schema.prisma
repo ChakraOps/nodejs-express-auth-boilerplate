@@ -61,16 +61,18 @@ model TeamMember {
 }
 
 model Session {
-  id               String    @id @default(cuid())
-  userId           String
-  token            String    @unique
-  expiresAt        DateTime
-  createdAt        DateTime  @default(now())
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  expiresAt  DateTime
+  revoked    Boolean  @default(false)
+  createdAt  DateTime @default(now())
 
-  user             User      @relation(fields: [userId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
 
   @@map("sessions")
 }
+
 
 model VerificationToken {
   id               String    @id @default(cuid())
@@ -116,17 +118,19 @@ model AuditLog {
 }
 
 model Device {
-  id               String    @id @default(cuid())
-  userId           String
-  name             String
-  ipAddress        String?
-  lastUsedAt       DateTime  @default(now())
-  createdAt        DateTime  @default(now())
+  id         String @id @default(cuid())
+  userId     String
+  name       String
+  ipAddress  String?
+  lastUsedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
-  user             User      @relation(fields: [userId], references: [id])
+  user       User @relation(fields: [userId], references: [id])
 
+  @@unique([userId, name])
   @@map("devices")
 }
+
 
 model OAuthAccount {
   id               String    @id @default(cuid())

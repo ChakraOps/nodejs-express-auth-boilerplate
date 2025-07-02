@@ -3,8 +3,10 @@ const bcrypt = require('bcrypt');
 const { signAccessToken, signRefreshToken, verifyRefreshToken } = require('../core/jwt');
 const ms = require('ms');
 const env = require('../config/env');
+const log = require('../core/logger');
+const { createAuditLog } = require('../core/audit');
 
-const register = async ({ firstName, lastName, email, password, inviteId = null }) => {
+const register = async ({ firstName, lastName, email, password, req, inviteId = null }) => {
   const normalizedEmail = email.toLowerCase();
 
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -16,7 +18,6 @@ const register = async ({ firstName, lastName, email, password, inviteId = null 
     data: { firstName, lastName, email: normalizedEmail, passwordHash }
   });
 
-  // Determine role
   let roleName = 'subscriber_admin';
 
   if (inviteId) {
@@ -24,7 +25,6 @@ const register = async ({ firstName, lastName, email, password, inviteId = null 
     if (!invite) throw new Error('Invalid or expired invite');
     roleName = 'subscriber_member';
 
-    // Optionally mark invite as accepted
     await prisma.invite.update({
       where: { id: inviteId },
       data: { acceptedBy: user.id, acceptedAt: new Date() }
@@ -41,10 +41,17 @@ const register = async ({ firstName, lastName, email, password, inviteId = null 
     });
   }
 
+  log.info(`New user registered: ${user.id} as ${roleName}`);
+   await createAuditLog({
+    userId: user.id,
+    action: `User registered as ${roleName}`,
+    req
+  });
+
   return { success: true, message: 'Registration successful', userId: user.id };
 };
 
-const login = async ({ email, password }) => {
+const login = async ({ email, password, req }) => {
   const normalizedEmail = email.toLowerCase();
 
   const user = await prisma.user.findUnique({
@@ -69,6 +76,14 @@ const login = async ({ email, password }) => {
     }
   });
 
+  log.info(`User logged in: ${user.id}`);
+  await createAuditLog({
+  userId: user.id,
+  action: 'User logged in',
+  req
+});
+
+
   return { accessToken, refreshToken, roles: userRoles };
 };
 
@@ -78,7 +93,9 @@ const refresh = async (refreshToken) => {
   const payload = verifyRefreshToken(refreshToken);
 
   const session = await prisma.session.findUnique({ where: { token: refreshToken } });
-  if (!session || session.expiresAt < new Date()) throw new Error('Session expired or invalid');
+  if (!session || session.expiresAt < new Date() || session.revoked) {
+    throw new Error('Session expired, Please login again');
+  }
 
   const user = await prisma.user.findUnique({
     where: { id: payload.sub },
@@ -99,15 +116,73 @@ const refresh = async (refreshToken) => {
     }
   });
 
+  log.info(`Refresh token rotated for user: ${user.id}`);
+
   return { accessToken: newAccessToken, refreshToken: newRefreshToken, roles: userRoles };
 };
 
-const logout = async (refreshToken) => {
+
+const logout = async (refreshToken, req) => {
   if (!refreshToken) throw new Error('Refresh token missing');
 
-  await prisma.session.deleteMany({ where: { token: refreshToken } });
+  const payload = verifyRefreshToken(refreshToken);
+
+  const session = await prisma.session.findUnique({ where: { token: refreshToken } });
+  if (!session) throw new Error('Session not found');
+
+  await prisma.session.update({
+    where: { token: refreshToken },
+    data: {
+      revoked: true,
+      expiresAt: new Date(),
+      token: `revoked:${session.id}:${Date.now()}`
+    }
+  });
+
+  log.info(`User logged out, session revoked and token cleared: ${payload.sub}`);
+
+  await createAuditLog({
+    userId: payload.sub,
+    action: 'User logged out',
+    req
+  });
 
   return { success: true, message: 'Logged out successfully' };
 };
 
-module.exports = { register, login, refresh, logout };
+const logoutAll = async (refreshToken, req) => {
+  if (!refreshToken) throw new Error('Refresh token missing');
+
+  const payload = verifyRefreshToken(refreshToken);
+
+  const userId = payload.sub;
+
+  const sessions = await prisma.session.findMany({ where: { userId, revoked: false } });
+
+  for (const session of sessions) {
+    await prisma.session.update({
+      where: { token: session.token },
+      data: {
+        revoked: true,
+        expiresAt: new Date(),
+        token: `revoked:${session.id}:${Date.now()}`
+      }
+    });
+  }
+
+  log.info(`All sessions revoked for user: ${userId}`);
+
+  await createAuditLog({
+    userId,
+    action: 'User logged out from all devices',
+    req
+  });
+
+  return { success: true, message: 'Logged out from all devices successfully' };
+};
+
+
+
+
+
+module.exports = { register, login, refresh, logout, logoutAll };
