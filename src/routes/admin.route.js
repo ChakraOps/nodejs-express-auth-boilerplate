@@ -19,6 +19,11 @@ router.post('/roles', adminController.createRole);
 router.patch('/roles/:id', adminController.updateRole);
 router.delete('/roles/:id', adminController.deleteRole);
 
+// Users
+router.get('/users/:id', adminController.getUserById);
+router.patch('/users/:id', adminController.updateUserProfile);
+router.post('/users/create', adminController.createUser);
+
 // Audit Logs
 router.get('/audit-logs', adminController.listAuditLogs);
 

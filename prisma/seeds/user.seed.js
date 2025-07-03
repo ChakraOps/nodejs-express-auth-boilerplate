@@ -33,7 +33,12 @@ const seedUsers = async () => {
   ];
 
   for (const user of defaultUsers) {
-    const existing = await prisma.user.findUnique({ where: { email: user.email } });
+    const existing = await prisma.user.findFirst({
+  where: {
+    email: user.email,
+    deletedAt: null
+  }
+});
 
     if (!existing) {
       const passwordHash = await bcrypt.hash(user.password, 10);

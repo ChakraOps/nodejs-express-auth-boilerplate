@@ -12,7 +12,7 @@ model User {
   id               String    @id @default(cuid())
   firstName        String
   lastName         String
-  email            String    @unique
+  email            String
   passwordHash     String
   isEmailVerified  Boolean   @default(false)
   createdAt        DateTime  @default(now())
@@ -28,8 +28,11 @@ model User {
   roles            UserRole[]
   permissions      UserPermission[]
 
+  @@index([email, deletedAt])
   @@map("users")
 }
+
+
 
 model Team {
   id               String    @id @default(cuid())

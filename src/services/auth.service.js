@@ -18,7 +18,12 @@ const register = async ({
 }) => {
   const normalizedEmail = email.toLowerCase();
 
-  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  const existing = await prisma.user.findFirst({
+    where: {
+      email: normalizedEmail,
+      deletedAt: null
+    }
+  });
   if (existing) throw new Error('Email is already registered');
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -72,11 +77,15 @@ const register = async ({
 const login = async ({ email, password, deviceName, ipAddress, userAgent }) => {
   const normalizedEmail = email.toLowerCase();
 
-  const user = await prisma.user.findUnique({
-    where: { email: normalizedEmail },
+  const user = await prisma.user.findFirst({
+    where: {
+      email: normalizedEmail,
+      deletedAt: null
+    },
     include: { roles: { include: { role: true } } }
   });
-  if (!user) throw new Error('Invalid credentials');
+
+  if (!user) throw new Error('You are not registered, Please register!');
 
   const isMatch = await bcrypt.compare(password, user.passwordHash);
   if (!isMatch) throw new Error('Invalid credentials');

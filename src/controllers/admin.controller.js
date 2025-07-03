@@ -72,6 +72,33 @@ const listAuditLogs = async (req, res, next) => {
   }
 };
 
+const getUserById = async (req, res, next) => {
+  try {
+    const user = await adminService.getUserById(req.params.id);
+    res.status(200).json(user);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateUserProfile = async (req, res, next) => {
+  try {
+    const result = await adminService.updateUserProfile(req.params.id, req.body, req);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createUser = async (req, res, next) => {
+  try {
+    const result = await adminService.createUser(req.body, req);
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   listUsers,
   updateUserRoles,
@@ -80,5 +107,8 @@ module.exports = {
   createRole,
   updateRole,
   deleteRole,
+  getUserById,
+  updateUserProfile,
+  createUser,
   listAuditLogs
 };
