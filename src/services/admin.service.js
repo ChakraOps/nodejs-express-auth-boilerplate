@@ -23,14 +23,14 @@ const listUsers = async () => {
     }
   });
 
-  const formatted = users.map(user => ({
+  const formatted = users.map((user) => ({
     id: user.id,
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
     isEmailVerified: user.isEmailVerified,
     createdAt: user.createdAt,
-    roles: user.roles.map(r => r.role.name)
+    roles: user.roles.map((r) => r.role.name)
   }));
 
   log.info('Admin listed all users with roles');

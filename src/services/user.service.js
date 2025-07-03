@@ -52,8 +52,7 @@ const updateProfile = async (userId, data, deviceId, ipAddress, userAgent, sessi
 
   log.info(`User profile updated: ${userId}`);
 
-
-  console.log(userId, data, deviceId, ipAddress, userAgent, sessionId)
+  console.log(userId, data, deviceId, ipAddress, userAgent, sessionId);
   const session = await prisma.session.findUnique({ where: { id: sessionId } });
 
   if (passwordChanged) {

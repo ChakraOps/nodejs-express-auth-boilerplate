@@ -1,6 +1,6 @@
 const express = require('express');
 const requireRole = require('../middlewares/requireRole');
-const {listUsers, updateUserRoles, listAuditLogs } = require('../controllers/admin.controller');
+const { listUsers, updateUserRoles, listAuditLogs } = require('../controllers/admin.controller');
 
 const router = express.Router();
 

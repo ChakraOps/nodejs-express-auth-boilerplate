@@ -9,7 +9,7 @@ const authenticate = (req, res, next) => {
 
     req.user = payload;
     req.user.sessionId = payload.sessionId || null;
-    req.deviceId = payload.deviceId || null; 
+    req.deviceId = payload.deviceId || null;
 
     next();
   } catch (err) {

@@ -6,7 +6,16 @@ const env = require('../config/env');
 const log = require('../core/logger');
 const { createAuditLog } = require('../core/audit');
 
-const register = async ({ firstName, lastName, email, password, inviteId = null, deviceName, ipAddress, userAgent }) => {
+const register = async ({
+  firstName,
+  lastName,
+  email,
+  password,
+  inviteId = null,
+  deviceName,
+  ipAddress,
+  userAgent
+}) => {
   const normalizedEmail = email.toLowerCase();
 
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
@@ -117,7 +126,6 @@ const login = async ({ email, password, deviceName, ipAddress, userAgent }) => {
   };
 };
 
-
 const refresh = async (refreshToken) => {
   if (!refreshToken) throw new Error('Refresh token missing');
 
@@ -161,7 +169,6 @@ const refresh = async (refreshToken) => {
     sessionId: session.id
   };
 };
-
 
 const logout = async (refreshToken, ipAddress, userAgent) => {
   if (!refreshToken) throw new Error('Refresh token missing');
@@ -240,6 +247,5 @@ const logoutAll = async (refreshToken, ipAddress, userAgent) => {
 
   return { success: true, message: 'Logged out from all devices successfully' };
 };
-
 
 module.exports = { register, login, refresh, logout, logoutAll };
