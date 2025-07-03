@@ -12,7 +12,6 @@ router.post('/refresh', generalLimiter, refresh);
 router.post('/resend-verification', validate(resendVerificationSchema),registerLimiter, resendVerification);
 router.post('/verify', registerLimiter, verifyEmail);
 router.post('/forgot-password', registerLimiter, validate(forgotPasswordSchema), forgotPassword);
-c
 router.post('/logout', generalLimiter, logout);
 router.post('/logout-all', logoutAll);
 

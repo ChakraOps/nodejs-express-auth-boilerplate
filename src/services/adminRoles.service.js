@@ -11,6 +11,9 @@ const listRoles = async () => {
 };
 
 const createRole = async (data, req) => {
+  const exists = await prisma.role.findUnique({ where: { name: data.name } });
+  if (exists) throw new Error('Role name already exists');
+
   const role = await prisma.role.create({
     data: {
       name: data.name,
@@ -32,6 +35,7 @@ const createRole = async (data, req) => {
 
   return role;
 };
+
 
 const updateRole = async (roleId, data, req) => {
   const updated = await prisma.role.update({

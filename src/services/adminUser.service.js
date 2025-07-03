@@ -3,28 +3,35 @@ const log = require('../core/logger');
 const { createAuditLog } = require('../core/audit');
 const bcrypt = require('bcrypt');
 
-const listUsers = async () => {
-  const users = await prisma.user.findMany({
-    // where: { deletedAt: null },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      isEmailVerified: true,
-      createdAt: true,
-      deletedAt: true,
-      roles: {
-        select: { role: { select: { name: true } } }
-      }
-    }
-  });
+const listUsers = async ({ page = 1, limit = 20 }) => {
+  const skip = (page - 1) * limit;
 
-  return users.map((u) => ({
-    ...u,
-    roles: u.roles.map((r) => r.role.name)
-  }));
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where: { deletedAt: null },
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        isEmailVerified: true,
+        createdAt: true
+      }
+    }),
+    prisma.user.count({ where: { deletedAt: null } })
+  ]);
+
+  return {
+    users,
+    total,
+    page,
+    totalPages: Math.ceil(total / limit)
+  };
 };
+
 
 const updateUserRoles = async (userId, roles = [], req) => {
   if (!Array.isArray(roles) || roles.length === 0) {
@@ -57,24 +64,35 @@ const updateUserRoles = async (userId, roles = [], req) => {
 };
 
 const softDeleteUser = async (userId, req) => {
+  const existing = await prisma.user.findUnique({ where: { id: userId } });
+  if (!existing || existing.deletedAt !== null) {
+    throw new Error('User not found or already deleted');
+  }
+
+  // Soft-delete user
   await prisma.user.update({
     where: { id: userId },
     data: { deletedAt: new Date() }
   });
 
-  log.warn(`User soft-deleted: ${userId}`);
+  // Cleanup sessions, tokens
+  await prisma.session.deleteMany({ where: { userId } });
+  await prisma.verificationToken.deleteMany({ where: { userId } });
+
+  log.info(`User soft-deleted: ${userId}, associated sessions/tokens cleaned`);
 
   await createAuditLog({
     userId: req.user.sub,
     sessionId: req.user.sessionId,
     deviceId: req.user.deviceId,
-    action: `Soft deleted user ${userId}`,
+    action: `Soft-deleted user ${userId} and cleaned sessions/tokens`,
     ipAddress: req.ip,
     userAgent: req.headers['user-agent']
   });
 
-  return { success: true, message: 'User soft deleted' };
+  return { success: true, message: 'User deleted successfully' };
 };
+
 
 const listAuditLogs = async () => {
   const logs = await prisma.auditLog.findMany({

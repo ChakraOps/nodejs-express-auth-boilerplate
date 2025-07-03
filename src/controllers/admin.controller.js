@@ -4,12 +4,17 @@ const adminPermissionService = require('../services/adminPermission.service');
 
 const listUsers = async (req, res, next) => {
   try {
-    const users = await adminUserService.listUsers();
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+
+    const users = await adminUserService.listUsers({ page, limit });
+
     res.status(200).json(users);
   } catch (err) {
     next(err);
   }
 };
+
 
 const updateUserRoles = async (req, res, next) => {
   try {

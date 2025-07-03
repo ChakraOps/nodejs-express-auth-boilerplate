@@ -14,6 +14,9 @@ const listPermissions = async () => {
 
 // Create Permission
 const createPermission = async (data, req) => {
+  const exists = await prisma.permission.findUnique({ where: { name: data.name } });
+  if (exists) throw new Error('Permission name already exists');
+
   const permission = await prisma.permission.create({
     data: {
       name: data.name,
@@ -34,7 +37,6 @@ const createPermission = async (data, req) => {
 
   return permission;
 };
-
 // Update Permission
 const updatePermission = async (permissionId, data, req) => {
   const updated = await prisma.permission.update({
