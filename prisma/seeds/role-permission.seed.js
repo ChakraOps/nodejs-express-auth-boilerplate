@@ -81,7 +81,9 @@ const seedRolesAndPermissions = async () => {
 
   for (const perm of adminPerms) {
     await prisma.rolePermission.upsert({
-      where: { roleId_permissionId: { roleId: roleMap['subscriber_admin'].id, permissionId: perm.id } },
+      where: {
+        roleId_permissionId: { roleId: roleMap['subscriber_admin'].id, permissionId: perm.id }
+      },
       update: {},
       create: { roleId: roleMap['subscriber_admin'].id, permissionId: perm.id }
     });
@@ -93,7 +95,9 @@ const seedRolesAndPermissions = async () => {
 
   for (const perm of memberPerms) {
     await prisma.rolePermission.upsert({
-      where: { roleId_permissionId: { roleId: roleMap['subscriber_member'].id, permissionId: perm.id } },
+      where: {
+        roleId_permissionId: { roleId: roleMap['subscriber_member'].id, permissionId: perm.id }
+      },
       update: {},
       create: { roleId: roleMap['subscriber_member'].id, permissionId: perm.id }
     });

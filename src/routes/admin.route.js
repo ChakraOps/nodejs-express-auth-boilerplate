@@ -1,18 +1,30 @@
 const express = require('express');
+const authenticate = require('../middlewares/authenticate');
 const requireRole = require('../middlewares/requireRole');
-const {listUsers, updateUserRoles, listAuditLogs } = require('../controllers/admin.controller');
+const adminController = require('../controllers/admin.controller');
 
 const router = express.Router();
 
+router.use(authenticate);
 router.use(requireRole(['superadmin']));
 
-// List all users
-router.get('/users', listUsers);
+// Users
+router.get('/users', adminController.listUsers);
+router.patch('/users/:id/roles', adminController.updateUserRoles);
+router.delete('/users/:id', adminController.softDeleteUser);
 
-// Update user roles
-router.patch('/users/:id/roles', updateUserRoles);
+// Roles
+router.get('/roles', adminController.listRoles);
+router.post('/roles', adminController.createRole);
+router.patch('/roles/:id', adminController.updateRole);
+router.delete('/roles/:id', adminController.deleteRole);
 
-// View audit logs
-router.get('/audit-logs', listAuditLogs);
+// Users
+router.get('/users/:id', adminController.getUserById);
+router.patch('/users/:id', adminController.updateUserProfile);
+router.post('/users/create', adminController.createUser);
+
+// Audit Logs
+router.get('/audit-logs', adminController.listAuditLogs);
 
 module.exports = router;

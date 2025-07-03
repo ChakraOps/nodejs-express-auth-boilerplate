@@ -6,10 +6,24 @@ const env = require('../config/env');
 const log = require('../core/logger');
 const { createAuditLog } = require('../core/audit');
 
-const register = async ({ firstName, lastName, email, password, inviteId = null, deviceName, ipAddress, userAgent }) => {
+const register = async ({
+  firstName,
+  lastName,
+  email,
+  password,
+  inviteId = null,
+  deviceName,
+  ipAddress,
+  userAgent
+}) => {
   const normalizedEmail = email.toLowerCase();
 
-  const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  const existing = await prisma.user.findFirst({
+    where: {
+      email: normalizedEmail,
+      deletedAt: null
+    }
+  });
   if (existing) throw new Error('Email is already registered');
 
   const passwordHash = await bcrypt.hash(password, 10);
@@ -63,11 +77,15 @@ const register = async ({ firstName, lastName, email, password, inviteId = null,
 const login = async ({ email, password, deviceName, ipAddress, userAgent }) => {
   const normalizedEmail = email.toLowerCase();
 
-  const user = await prisma.user.findUnique({
-    where: { email: normalizedEmail },
+  const user = await prisma.user.findFirst({
+    where: {
+      email: normalizedEmail,
+      deletedAt: null
+    },
     include: { roles: { include: { role: true } } }
   });
-  if (!user) throw new Error('Invalid credentials');
+
+  if (!user) throw new Error('You are not registered, Please register!');
 
   const isMatch = await bcrypt.compare(password, user.passwordHash);
   if (!isMatch) throw new Error('Invalid credentials');
@@ -117,7 +135,6 @@ const login = async ({ email, password, deviceName, ipAddress, userAgent }) => {
   };
 };
 
-
 const refresh = async (refreshToken) => {
   if (!refreshToken) throw new Error('Refresh token missing');
 
@@ -161,7 +178,6 @@ const refresh = async (refreshToken) => {
     sessionId: session.id
   };
 };
-
 
 const logout = async (refreshToken, ipAddress, userAgent) => {
   if (!refreshToken) throw new Error('Refresh token missing');
@@ -240,6 +256,5 @@ const logoutAll = async (refreshToken, ipAddress, userAgent) => {
 
   return { success: true, message: 'Logged out from all devices successfully' };
 };
-
 
 module.exports = { register, login, refresh, logout, logoutAll };

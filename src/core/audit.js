@@ -3,7 +3,7 @@ const log = require('./logger');
 
 /**
  * Create an audit log entry with full traceability
- * 
+ *
  * @param {Object} params
  * @param {String} params.userId - User performing the action
  * @param {String} [params.teamId] - Optional team context
