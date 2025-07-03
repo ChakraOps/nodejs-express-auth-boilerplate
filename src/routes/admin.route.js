@@ -1,13 +1,18 @@
 const express = require('express');
 const requireRole = require('../middlewares/requireRole');
-const adminController = require('../controllers/admin.controller');
+const {listUsers, updateUserRoles, listAuditLogs } = require('../controllers/admin.controller');
 
 const router = express.Router();
 
-// All routes here assume user is authenticated at index.js layer
+router.use(requireRole(['superadmin']));
 
-router.get('/users', requireRole(['superadmin']), adminController.listUsers);
+// List all users
+router.get('/users', listUsers);
 
-router.patch('/users/:id/role', requireRole(['superadmin']), adminController.updateUserRole);
+// Update user roles
+router.patch('/users/:id/roles', updateUserRoles);
+
+// View audit logs
+router.get('/audit-logs', listAuditLogs);
 
 module.exports = router;
