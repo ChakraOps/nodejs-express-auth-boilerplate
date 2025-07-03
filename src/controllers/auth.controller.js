@@ -55,6 +55,66 @@ const refresh = async (req, res, next) => {
   }
 };
 
+const resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const ipAddress = req.ip;
+    const userAgent = req.headers['user-agent'];
+
+    const result = await authService.resendVerification({
+      email,
+      ipAddress,
+      userAgent
+    });
+
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const verifyEmail = async (req, res, next) => {
+  try {
+    const { token } = req.query;
+    const ipAddress = req.ip;
+    const userAgent = req.headers['user-agent'];
+        console.log(token)
+
+    const result = await authService.verifyEmail({ token, ipAddress, userAgent });
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const ipAddress = req.ip;
+    const userAgent = req.headers['user-agent'];
+
+    await authService.forgotPassword({ email, ipAddress, userAgent });
+
+    res.json({ success: true, message: 'If the account exists, a password reset email has been sent' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+    const ipAddress = req.ip;
+    const userAgent = req.headers['user-agent'];
+
+    const result = await authService.resetPassword({ token, newPassword, ipAddress, userAgent });
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
 const logout = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
@@ -85,6 +145,10 @@ module.exports = {
   register,
   login,
   refresh,
+  verifyEmail,
+  resendVerification,
   logout,
+forgotPassword,
+  resetPassword,
   logoutAll
 };

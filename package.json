@@ -28,6 +28,7 @@
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
     "dotenv": "^17.0.1",
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.1",
@@ -41,6 +42,7 @@
     "winston-daily-rotate-file": "^5.0.0",
     "xss-clean": "^0.1.4",
     "yamljs": "^0.3.0",
+    "zeptomail": "^6.2.1",
     "zod": "^3.25.67",
     "zxcvbn": "^4.4.2"
   },
