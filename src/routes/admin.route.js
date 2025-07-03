@@ -24,6 +24,16 @@ router.get('/users/:id', adminController.getUserById);
 router.patch('/users/:id', adminController.updateUserProfile);
 router.post('/users/create', adminController.createUser);
 
+// Permissions
+router.get('/permissions', adminController.listPermissions);
+router.post('/permissions', adminController.createPermission);
+router.patch('/permissions/:id', adminController.updatePermission);
+router.delete('/permissions/:id', adminController.deletePermission);
+
+// Role-Permission
+router.get('/roles/:id/permissions', adminController.getRolePermissions);
+router.patch('/roles/:id/permissions', adminController.updateRolePermissions);
+
 // Audit Logs
 router.get('/audit-logs', adminController.listAuditLogs);
 

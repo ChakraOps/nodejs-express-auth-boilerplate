@@ -8,8 +8,8 @@ const authenticate = (req, res, next) => {
     const payload = verifyAccessToken(token);
 
     req.user = payload;
-    req.user.sessionId = payload.sessionId || null;
-    req.deviceId = payload.deviceId || null;
+    req.user.sessionId = payload.sessionId;
+    req.deviceId = payload.deviceId;
 
     next();
   } catch (err) {

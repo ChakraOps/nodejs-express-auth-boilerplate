@@ -1,8 +1,10 @@
-const adminService = require('../services/admin.service');
+const adminUserService = require('../services/adminUser.service');
+const adminRolesService = require('../services/adminRoles.service');
+const adminPermissionService = require('../services/adminPermission.service');
 
 const listUsers = async (req, res, next) => {
   try {
-    const users = await adminService.listUsers();
+    const users = await adminUserService.listUsers();
     res.status(200).json(users);
   } catch (err) {
     next(err);
@@ -11,7 +13,7 @@ const listUsers = async (req, res, next) => {
 
 const updateUserRoles = async (req, res, next) => {
   try {
-    const result = await adminService.updateUserRoles(req.params.id, req.body.roles, req);
+    const result = await adminUserService.updateUserRoles(req.params.id, req.body.roles, req);
     res.status(200).json(result);
   } catch (err) {
     next(err);
@@ -20,43 +22,7 @@ const updateUserRoles = async (req, res, next) => {
 
 const softDeleteUser = async (req, res, next) => {
   try {
-    const result = await adminService.softDeleteUser(req.params.id, req);
-    res.status(200).json(result);
-  } catch (err) {
-    next(err);
-  }
-};
-
-const listRoles = async (req, res, next) => {
-  try {
-    const roles = await adminService.listRoles();
-    res.status(200).json(roles);
-  } catch (err) {
-    next(err);
-  }
-};
-
-const createRole = async (req, res, next) => {
-  try {
-    const result = await adminService.createRole(req.body);
-    res.status(201).json(result);
-  } catch (err) {
-    next(err);
-  }
-};
-
-const updateRole = async (req, res, next) => {
-  try {
-    const result = await adminService.updateRole(req.params.id, req.body);
-    res.status(200).json(result);
-  } catch (err) {
-    next(err);
-  }
-};
-
-const deleteRole = async (req, res, next) => {
-  try {
-    const result = await adminService.deleteRole(req.params.id);
+    const result = await adminUserService.softDeleteUser(req.params.id, req);
     res.status(200).json(result);
   } catch (err) {
     next(err);
@@ -65,7 +31,7 @@ const deleteRole = async (req, res, next) => {
 
 const listAuditLogs = async (req, res, next) => {
   try {
-    const logs = await adminService.listAuditLogs();
+    const logs = await adminUserService.listAuditLogs();
     res.status(200).json(logs);
   } catch (err) {
     next(err);
@@ -74,7 +40,7 @@ const listAuditLogs = async (req, res, next) => {
 
 const getUserById = async (req, res, next) => {
   try {
-    const user = await adminService.getUserById(req.params.id);
+    const user = await adminUserService.getUserById(req.params.id);
     res.status(200).json(user);
   } catch (err) {
     next(err);
@@ -83,7 +49,7 @@ const getUserById = async (req, res, next) => {
 
 const updateUserProfile = async (req, res, next) => {
   try {
-    const result = await adminService.updateUserProfile(req.params.id, req.body, req);
+    const result = await adminUserService.updateUserProfile(req.params.id, req.body, req);
     res.status(200).json(result);
   } catch (err) {
     next(err);
@@ -92,8 +58,102 @@ const updateUserProfile = async (req, res, next) => {
 
 const createUser = async (req, res, next) => {
   try {
-    const result = await adminService.createUser(req.body, req);
+    const result = await adminUserService.createUser(req.body, req);
     res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const listRoles = async (req, res, next) => {
+  try {
+    const roles = await adminRolesService.listRoles();
+    res.status(200).json(roles);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createRole = async (req, res, next) => {
+  try {
+    const result = await adminRolesService.createRole(req.body);
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateRole = async (req, res, next) => {
+  try {
+    const result = await adminRolesService.updateRole(req.params.id, req.body);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deleteRole = async (req, res, next) => {
+  try {
+    const result = await adminRolesService.deleteRole(req.params.id);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const listPermissions = async (req, res, next) => {
+  try {
+    const result = await adminPermissionService.listPermissions();
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createPermission = async (req, res, next) => {
+  try {
+    const result = await adminPermissionService.createPermission(req.body, req);
+    res.status(201).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updatePermission = async (req, res, next) => {
+  try {
+    const result = await adminPermissionService.updatePermission(req.params.id, req.body, req);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const deletePermission = async (req, res, next) => {
+  try {
+    const result = await adminPermissionService.deletePermission(req.params.id, req);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getRolePermissions = async (req, res, next) => {
+  try {
+    const result = await adminPermissionService.getRolePermissions(req.params.id);
+    res.status(200).json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateRolePermissions = async (req, res, next) => {
+  try {
+    const result = await adminPermissionService.updateRolePermissions(
+      req.params.id,
+      req.body.permissions,
+      req
+    );
+    res.status(200).json(result);
   } catch (err) {
     next(err);
   }
@@ -110,5 +170,11 @@ module.exports = {
   getUserById,
   updateUserProfile,
   createUser,
+  listPermissions,
+  createPermission,
+  updatePermission,
+  deletePermission,
+  getRolePermissions,
+  updateRolePermissions,
   listAuditLogs
 };
