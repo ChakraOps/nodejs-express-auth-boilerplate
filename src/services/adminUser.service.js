@@ -76,79 +76,6 @@ const softDeleteUser = async (userId, req) => {
   return { success: true, message: 'User soft deleted' };
 };
 
-const listRoles = async () => {
-  const roles = await prisma.role.findMany({
-    select: { id: true, name: true, description: true, isSystem: true }
-  });
-  return roles;
-};
-
-const createRole = async (data, req) => {
-  const role = await prisma.role.create({
-    data: {
-      name: data.name,
-      description: data.description || null,
-      isSystem: data.isSystem || false
-    }
-  });
-
-  log.info(`New role created: ${role.name}`);
-
-  await createAuditLog({
-    userId: req.user.sub,
-    sessionId: req.user.sessionId,
-    deviceId: req.user.deviceId,
-    action: `Created new role ${role.name}`,
-    ipAddress: req.ip,
-    userAgent: req.headers['user-agent']
-  });
-
-  return role;
-};
-
-const updateRole = async (roleId, data, req) => {
-  const updated = await prisma.role.update({
-    where: { id: roleId },
-    data: {
-      name: data.name,
-      description: data.description,
-      isSystem: data.isSystem
-    }
-  });
-
-  log.info(`Role updated: ${roleId}`);
-
-  await createAuditLog({
-    userId: req.user.sub,
-    sessionId: req.user.sessionId,
-    deviceId: req.user.deviceId,
-    action: `Updated role ${updated.name}`,
-    ipAddress: req.ip,
-    userAgent: req.headers['user-agent']
-  });
-
-  return updated;
-};
-
-const deleteRole = async (roleId, req) => {
-  const role = await prisma.role.findUnique({ where: { id: roleId } });
-
-  await prisma.role.delete({ where: { id: roleId } });
-
-  log.info(`Role deleted: ${roleId}`);
-
-  await createAuditLog({
-    userId: req.user.sub,
-    sessionId: req.user.sessionId,
-    deviceId: req.user.deviceId,
-    action: `Deleted role ${role?.name || roleId}`,
-    ipAddress: req.ip,
-    userAgent: req.headers['user-agent']
-  });
-
-  return { success: true, message: 'Role deleted' };
-};
-
 const listAuditLogs = async () => {
   const logs = await prisma.auditLog.findMany({
     orderBy: { createdAt: 'desc' },
@@ -253,16 +180,90 @@ const updateUserProfile = async (userId, data, req) => {
   return { success: true, message: 'User profile updated' };
 };
 
+/**
+ * Get combined permissions: role-based + user-specific
+ */
+const getUserPermissions = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
+      permissions: { include: { permission: true } }
+    }
+  });
+
+  if (!user) throw new Error('User not found');
+
+  // 1Role-based permissions
+  const rolePermissions = user.roles.flatMap((ur) =>
+    ur.role.permissions.map((rp) => ({
+      id: rp.permission.id,
+      name: rp.permission.name,
+      description: rp.permission.description,
+      source: 'role'
+    }))
+  );
+
+  // Direct user-permissions
+  const directPermissions = user.permissions.map((up) => ({
+    id: up.permission.id,
+    name: up.permission.name,
+    description: up.permission.description,
+    source: 'user'
+  }));
+
+  // 3Combine & remove duplicates based on permission ID
+  const combined = [...rolePermissions, ...directPermissions];
+  const uniquePermissions = Array.from(new Map(combined.map(p => [p.id, p])).values());
+
+  log.info(`Fetched combined permissions for user: ${userId}`);
+  return uniquePermissions;
+};
+
+/**
+ * Update user's direct permissions (overwrites existing)
+ */
+const updateUserPermissions = async (userId, permissionIds = [], req) => {
+  if (!Array.isArray(permissionIds)) {
+    throw new Error('permissions array must be provided');
+  }
+
+  await prisma.userPermission.deleteMany({ where: { userId } });
+
+  const validPermissions = await prisma.permission.findMany({
+    where: { id: { in: permissionIds } }
+  });
+
+  if (validPermissions.length === 0) throw new Error('No valid permissions found');
+
+  for (const perm of validPermissions) {
+    await prisma.userPermission.create({
+      data: { userId, permissionId: perm.id }
+    });
+  }
+
+  await createAuditLog({
+    userId: req.user.sub,
+    sessionId: req.user.sessionId,
+    deviceId: req.user.deviceId,
+    action: `Updated direct permissions for user ${userId}`,
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+
+  log.info(`User permissions updated for user: ${userId}`);
+  return { success: true, message: 'User permissions updated' };
+};
+
+
 module.exports = {
   listUsers,
   updateUserRoles,
   softDeleteUser,
-  listRoles,
-  createRole,
-  updateRole,
-  deleteRole,
   listAuditLogs,
   getUserById,
   createUser,
+  getUserPermissions,
+  updateUserPermissions,
   updateUserProfile
 };

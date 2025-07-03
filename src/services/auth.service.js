@@ -140,7 +140,9 @@ const refresh = async (refreshToken) => {
 
   const payload = verifyRefreshToken(refreshToken);
 
-  const session = await prisma.session.findUnique({ where: { token: refreshToken } });
+  const session = await prisma.session.findUnique({
+    where: { token: refreshToken }
+  });
   if (!session || session.expiresAt < new Date() || session.revoked) {
     throw new Error('Session expired, Please login again');
   }
@@ -156,7 +158,8 @@ const refresh = async (refreshToken) => {
   const newAccessToken = signAccessToken({
     userId: user.id,
     roles: userRoles,
-    sessionId: session.id
+    sessionId: session.id,
+    deviceId: session.deviceId
   });
 
   const newRefreshToken = signRefreshToken({ userId: user.id });
