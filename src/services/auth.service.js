@@ -80,10 +80,9 @@ const login = async ({ email, password, deviceName, ipAddress, userAgent }) => {
     create: { userId: user.id, name: deviceName, ipAddress }
   });
 
-  const accessToken = signAccessToken({ userId: user.id, roles: userRoles });
   const refreshToken = signRefreshToken({ userId: user.id });
 
-  await prisma.session.create({
+  const session = await prisma.session.create({
     data: {
       userId: user.id,
       deviceId: device.id,
@@ -92,18 +91,32 @@ const login = async ({ email, password, deviceName, ipAddress, userAgent }) => {
     }
   });
 
+  const accessToken = signAccessToken({
+    userId: user.id,
+    roles: userRoles,
+    sessionId: session.id,
+    deviceId: device.id
+  });
+
   log.info(`User logged in: ${user.id} from device ${deviceName}`);
 
   await createAuditLog({
     userId: user.id,
+    sessionId: session.id,
     deviceId: device.id,
     action: 'User logged in',
     ipAddress,
     userAgent
   });
 
-  return { accessToken, refreshToken, roles: userRoles };
+  return {
+    accessToken,
+    refreshToken,
+    roles: userRoles,
+    sessionId: session.id
+  };
 };
+
 
 const refresh = async (refreshToken) => {
   if (!refreshToken) throw new Error('Refresh token missing');
@@ -123,7 +136,12 @@ const refresh = async (refreshToken) => {
 
   const userRoles = user.roles.map((r) => r.role.name);
 
-  const newAccessToken = signAccessToken({ userId: user.id, roles: userRoles });
+  const newAccessToken = signAccessToken({
+    userId: user.id,
+    roles: userRoles,
+    sessionId: session.id
+  });
+
   const newRefreshToken = signRefreshToken({ userId: user.id });
 
   await prisma.session.update({
@@ -136,8 +154,14 @@ const refresh = async (refreshToken) => {
 
   log.info(`Refresh token rotated for user: ${user.id}`);
 
-  return { accessToken: newAccessToken, refreshToken: newRefreshToken, roles: userRoles };
+  return {
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
+    roles: userRoles,
+    sessionId: session.id
+  };
 };
+
 
 const logout = async (refreshToken, ipAddress, userAgent) => {
   if (!refreshToken) throw new Error('Refresh token missing');
@@ -176,7 +200,14 @@ const logoutAll = async (refreshToken, ipAddress, userAgent) => {
   const payload = verifyRefreshToken(refreshToken);
   const userId = payload.sub;
 
-  const sessions = await prisma.session.findMany({ where: { userId, revoked: false } });
+  const sessions = await prisma.session.findMany({
+    where: { userId, revoked: false }
+  });
+
+  if (sessions.length === 0) {
+    log.info(`No active sessions found for user: ${userId}`);
+    return { success: true, message: 'No active sessions to revoke' };
+  }
 
   for (const session of sessions) {
     await prisma.session.update({
@@ -187,18 +218,28 @@ const logoutAll = async (refreshToken, ipAddress, userAgent) => {
         token: `revoked:${session.id}:${Date.now()}`
       }
     });
+
+    await createAuditLog({
+      userId,
+      sessionId: session.id,
+      deviceId: session.deviceId,
+      action: 'Session revoked via logout all',
+      ipAddress,
+      userAgent
+    });
   }
 
   log.info(`All sessions revoked for user: ${userId}`);
 
   await createAuditLog({
     userId,
-    action: 'User logged out from all devices',
+    action: 'User triggered logout from all devices',
     ipAddress,
     userAgent
   });
 
   return { success: true, message: 'Logged out from all devices successfully' };
 };
+
 
 module.exports = { register, login, refresh, logout, logoutAll };

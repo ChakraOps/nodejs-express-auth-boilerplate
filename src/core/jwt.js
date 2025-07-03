@@ -2,19 +2,22 @@ const jwt = require('jsonwebtoken');
 const env = require('../config/env');
 const log = require('./logger');
 
-const signAccessToken = ({ userId, roles = [] }) => {
+const signAccessToken = ({ userId, roles = [], sessionId, deviceId }) => {
   if (!env.jwt.accessSecret) {
     log.error('Access token secret missing');
     throw new Error('Access token secret missing');
   }
 
-  const token = jwt.sign({ sub: userId, roles }, env.jwt.accessSecret, {
-    expiresIn: env.jwt.accessExpiresIn
-  });
+  const token = jwt.sign(
+    { sub: userId, roles, sessionId, deviceId },
+    env.jwt.accessSecret,
+    { expiresIn: env.jwt.accessExpiresIn }
+  );
 
   log.info(`Access token signed for user: ${userId}`);
   return token;
 };
+
 
 const signRefreshToken = ({ userId }) => {
   if (!env.jwt.refreshSecret) {
