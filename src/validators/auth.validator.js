@@ -17,4 +17,18 @@ const loginSchema = z.object({
   password: z.string({ required_error: 'Password is required' }).min(1, 'Password is required')
 });
 
-module.exports = { registerSchema, loginSchema };
+const resendVerificationSchema = z.object({
+  email: z.string().email({ message: 'Valid email is required' })
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email({ message: 'Valid email is required' })
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(10),
+  newPassword: z.string().min(8, 'Password must be at least 8 characters')
+});
+
+
+module.exports = { registerSchema, loginSchema, resendVerificationSchema,  forgotPasswordSchema, resetPasswordSchema };

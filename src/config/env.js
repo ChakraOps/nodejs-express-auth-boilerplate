@@ -25,6 +25,13 @@ const env = {
     enable2FA: process.env.ENABLE_2FA === 'true',
     enableMagicLink: process.env.ENABLE_MAGIC_LINK === 'true',
     enableAuditLogs: process.env.ENABLE_AUDIT_LOGS === 'true'
+  },
+  
+  zepto: {
+    url: process.env.ZEPTO_URL,
+    token: process.env.ZEPTO_TOKEN,
+    fromAddress: process.env.ZEPTO_FROM_ADDRESS,
+    fromName: process.env.ZEPTO_FROM_NAME
   }
 };
 
