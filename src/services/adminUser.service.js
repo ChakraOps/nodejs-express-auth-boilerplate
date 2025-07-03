@@ -180,6 +180,82 @@ const updateUserProfile = async (userId, data, req) => {
   return { success: true, message: 'User profile updated' };
 };
 
+/**
+ * Get combined permissions: role-based + user-specific
+ */
+const getUserPermissions = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } },
+      permissions: { include: { permission: true } }
+    }
+  });
+
+  if (!user) throw new Error('User not found');
+
+  // 1Role-based permissions
+  const rolePermissions = user.roles.flatMap((ur) =>
+    ur.role.permissions.map((rp) => ({
+      id: rp.permission.id,
+      name: rp.permission.name,
+      description: rp.permission.description,
+      source: 'role'
+    }))
+  );
+
+  // Direct user-permissions
+  const directPermissions = user.permissions.map((up) => ({
+    id: up.permission.id,
+    name: up.permission.name,
+    description: up.permission.description,
+    source: 'user'
+  }));
+
+  // 3Combine & remove duplicates based on permission ID
+  const combined = [...rolePermissions, ...directPermissions];
+  const uniquePermissions = Array.from(new Map(combined.map(p => [p.id, p])).values());
+
+  log.info(`Fetched combined permissions for user: ${userId}`);
+  return uniquePermissions;
+};
+
+/**
+ * Update user's direct permissions (overwrites existing)
+ */
+const updateUserPermissions = async (userId, permissionIds = [], req) => {
+  if (!Array.isArray(permissionIds)) {
+    throw new Error('permissions array must be provided');
+  }
+
+  await prisma.userPermission.deleteMany({ where: { userId } });
+
+  const validPermissions = await prisma.permission.findMany({
+    where: { id: { in: permissionIds } }
+  });
+
+  if (validPermissions.length === 0) throw new Error('No valid permissions found');
+
+  for (const perm of validPermissions) {
+    await prisma.userPermission.create({
+      data: { userId, permissionId: perm.id }
+    });
+  }
+
+  await createAuditLog({
+    userId: req.user.sub,
+    sessionId: req.user.sessionId,
+    deviceId: req.user.deviceId,
+    action: `Updated direct permissions for user ${userId}`,
+    ipAddress: req.ip,
+    userAgent: req.headers['user-agent']
+  });
+
+  log.info(`User permissions updated for user: ${userId}`);
+  return { success: true, message: 'User permissions updated' };
+};
+
+
 module.exports = {
   listUsers,
   updateUserRoles,
@@ -187,5 +263,7 @@ module.exports = {
   listAuditLogs,
   getUserById,
   createUser,
+  getUserPermissions,
+  updateUserPermissions,
   updateUserProfile
 };

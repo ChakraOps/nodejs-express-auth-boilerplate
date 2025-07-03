@@ -159,7 +159,7 @@ const refresh = async (refreshToken) => {
     userId: user.id,
     roles: userRoles,
     sessionId: session.id,
-    deviceId: session.deviceId // ✅ deviceId from session
+    deviceId: session.deviceId
   });
 
   const newRefreshToken = signRefreshToken({ userId: user.id });

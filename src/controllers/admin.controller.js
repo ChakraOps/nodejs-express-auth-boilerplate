@@ -159,6 +159,71 @@ const updateRolePermissions = async (req, res, next) => {
   }
 };
 
+const getUserPermissions = async (req, res, next) => {
+  try {
+    const result = await adminUserService.getUserPermissions(req.params.id);
+    res.status(200).json(result);
+  } catch (err) { next(err); }
+};
+
+const updateUserPermissions = async (req, res, next) => {
+  try {
+    const result = await adminUserService.updateUserPermissions(req.params.id, req.body.permissions, req);
+    res.status(200).json(result);
+  } catch (err) { next(err); }
+};
+
+
+// const listTeams = async (req, res, next) => {
+//   try {
+//     const result = await adminService.listTeams();
+//     res.status(200).json(result);
+//   } catch (err) { next(err); }
+// };
+
+// const createTeam = async (req, res, next) => {
+//   try {
+//     const result = await adminService.createTeam(req.body, req);
+//     res.status(201).json(result);
+//   } catch (err) { next(err); }
+// };
+
+// const updateTeam = async (req, res, next) => {
+//   try {
+//     const result = await adminService.updateTeam(req.params.id, req.body, req);
+//     res.status(200).json(result);
+//   } catch (err) { next(err); }
+// };
+
+// const deleteTeam = async (req, res, next) => {
+//   try {
+//     const result = await adminService.deleteTeam(req.params.id, req);
+//     res.status(200).json(result);
+//   } catch (err) { next(err); }
+// };
+
+// const listTeamMembers = async (req, res, next) => {
+//   try {
+//     const result = await adminService.listTeamMembers(req.params.id);
+//     res.status(200).json(result);
+//   } catch (err) { next(err); }
+// };
+
+// const addTeamMember = async (req, res, next) => {
+//   try {
+//     const result = await adminService.addTeamMember(req.params.id, req.body.userId, req);
+//     res.status(201).json(result);
+//   } catch (err) { next(err); }
+// };
+
+// const removeTeamMember = async (req, res, next) => {
+//   try {
+//     const result = await adminService.removeTeamMember(req.params.id, req.params.userId, req);
+//     res.status(200).json(result);
+//   } catch (err) { next(err); }
+// };
+
+
 module.exports = {
   listUsers,
   updateUserRoles,
@@ -176,5 +241,7 @@ module.exports = {
   deletePermission,
   getRolePermissions,
   updateRolePermissions,
+  getUserPermissions,
+  updateUserPermissions,
   listAuditLogs
 };
