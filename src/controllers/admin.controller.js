@@ -81,7 +81,7 @@ const listRoles = async (req, res, next) => {
 
 const createRole = async (req, res, next) => {
   try {
-    const result = await adminRolesService.createRole(req.body);
+    const result = await adminRolesService.createRole(req.body, req);
     res.status(201).json(result);
   } catch (err) {
     next(err);
